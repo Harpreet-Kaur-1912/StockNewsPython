@@ -7,9 +7,10 @@ COMPANY_NAME = "Super Micro Computer"
 
 STOCK_API_KEY = os.environ.get("STOCK_API_KEY")
 NEWS_API_KEY = os.environ.get("NEWS_API_KEY")
-
-MY_EMAIL = os.environ.get("MY_EMAIL")
 EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
+
+FROM_EMAIL = "hkaur19121989@gmail.com"
+TO_EMAIL = "harpreet.kaur.9012@gmail.com"
 
 STOCK_ENDPOINT = "https://www.alphavantage.co/query"
 NEWS_ENDPOINT = "https://newsapi.org/v2/everything"
@@ -30,36 +31,35 @@ response = requests.get(
 
 response.raise_for_status()
 
-data = response.json()["Time Series (Daily)"]
+stock_data = response.json()
+
+if "Time Series (Daily)" not in stock_data:
+    print(stock_data)
+    raise Exception("Stock data was not returned correctly.")
+
+data = stock_data["Time Series (Daily)"]
 
 data_list = [value for (key, value) in data.items()]
 
 
-# Yesterday closing price
 yesterday_stock_price = float(
     data_list[0]["4. close"]
 )
 
-print("Yesterday:", yesterday_stock_price)
-
-
-# Day before yesterday closing price
 day_before_yesterday = float(
     data_list[1]["4. close"]
 )
 
-print("Day before yesterday:", day_before_yesterday)
+print("Yesterday closing price:", yesterday_stock_price)
+print("Day before yesterday closing price:", day_before_yesterday)
 
 
-# Difference
+# ---------------- PERCENTAGE CHANGE ---------------- #
+
 difference = abs(
     yesterday_stock_price - day_before_yesterday
 )
 
-print("Difference:", difference)
-
-
-# Percentage difference
 percentage_difference = (
     difference / day_before_yesterday
 ) * 100
@@ -83,23 +83,24 @@ if percentage_difference > 1:
 
     response.raise_for_status()
 
-    articles = response.json()["articles"]
+    news_data = response.json()
 
-    article_response = articles[:3]
+    articles = news_data["articles"]
+
+    top_three_articles = articles[:3]
 
 
     formatted_articles = [
         f"Headline: {article['title']}\n"
         f"Brief: {article['description']}"
-        for article in article_response
+        for article in top_three_articles
     ]
 
-    print(formatted_articles)
+
+    email_body = "\n\n".join(formatted_articles)
 
 
     # ---------------- EMAIL ---------------- #
-
-    email_body = "\n\n".join(formatted_articles)
 
     subject = (
         f"{STOCK_NAME} Stock Alert - "
@@ -109,7 +110,7 @@ if percentage_difference > 1:
     message = (
         f"Subject: {subject}\n\n"
         f"{STOCK_NAME} moved "
-        f"{percentage_difference:.2f}%.\n\n"
+        f"{percentage_difference:.2f}% between the last two trading days.\n\n"
         f"{email_body}"
     )
 
@@ -122,15 +123,16 @@ if percentage_difference > 1:
         connection.starttls()
 
         connection.login(
-            user=MY_EMAIL,
+            user=FROM_EMAIL,
             password=EMAIL_PASSWORD
         )
 
         connection.sendmail(
-            from_addr=MY_EMAIL,
-            to_addrs=MY_EMAIL,
+            from_addr=FROM_EMAIL,
+            to_addrs=TO_EMAIL,
             msg=message
         )
+
 
     print("Email sent successfully!")
 
