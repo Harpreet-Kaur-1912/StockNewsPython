@@ -7,7 +7,7 @@ COMPANY_NAME = "Super Micro Computer"
 
 STOCK_API_KEY = os.environ.get("STOCK_API_KEY")
 NEWS_API_KEY = os.environ.get("NEWS_API_KEY")
-EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD")
+EMAIL_PASSWORD = os.environ.get("PASSWORD")
 
 FROM_EMAIL = "hkaur19121989@gmail.com"
 TO_EMAIL = "harpreet.kaur.9012@gmail.com"
