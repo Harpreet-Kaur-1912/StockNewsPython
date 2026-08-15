@@ -104,7 +104,7 @@ if percentage_difference > 1:
 
     formatted_articles = [
         f"Headline: {article['title']}\n"
-        f"Brief: {article['description']}"
+        f"Read full article: {article['url']}"
         for article in top_three_articles
     ]
 
