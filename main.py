@@ -15,58 +15,124 @@ STOCK_ENDPOINT = "https://www.alphavantage.co/query"
 NEWS_ENDPOINT = "https://newsapi.org/v2/everything"
 
 
+# ---------------- STOCK DATA ---------------- #
 
+stock_params = {
+    "function": "TIME_SERIES_DAILY",
+    "symbol": STOCK_NAME,
+    "apikey": STOCK_API_KEY
+}
 
+response = requests.get(
+    url=STOCK_ENDPOINT,
+    params=stock_params
+)
 
-STOCK_PARAMS = {"function": "TIME_SERIES_DAILY",
-                "symbol": "SMCI",
-                "apikey": STOCK_API_KEY }
-response = requests.get(url=STOCK_ENDPOINT, params = STOCK_PARAMS)
+response.raise_for_status()
+
 data = response.json()["Time Series (Daily)"]
-data_list = [value for (key,value) in data.items()]
-yesterday_stock_price = data_list[0]["4. close"]
-print(yesterday_stock_price)
 
-day_before_yesterday = data_list[1]["4. close"]
-print(day_before_yesterday)
-difference = abs(float(yesterday_stock_price) - float(day_before_yesterday))
-print(difference)
+data_list = [value for (key, value) in data.items()]
 
-percentage_difference = (difference / float(yesterday_stock_price)) * 100
-print(percentage_difference)
+
+# Yesterday closing price
+yesterday_stock_price = float(
+    data_list[0]["4. close"]
+)
+
+print("Yesterday:", yesterday_stock_price)
+
+
+# Day before yesterday closing price
+day_before_yesterday = float(
+    data_list[1]["4. close"]
+)
+
+print("Day before yesterday:", day_before_yesterday)
+
+
+# Difference
+difference = abs(
+    yesterday_stock_price - day_before_yesterday
+)
+
+print("Difference:", difference)
+
+
+# Percentage difference
+percentage_difference = (
+    difference / day_before_yesterday
+) * 100
+
+print("Percentage difference:", percentage_difference)
+
+
+# ---------------- NEWS ---------------- #
 
 if percentage_difference > 1:
-    news_params = { "apiKey" : NEWS_API_KEY,
-   "qInTitle" : STOCK_NAME, }
-    response = requests.get(url=NEWS_ENDPOINT, params = news_params)
-    article = response.json()["articles"]
-    print(article)
-    article_response = article[:3]
-    print(article_response)
+
+    news_params = {
+        "apiKey": NEWS_API_KEY,
+        "qInTitle": COMPANY_NAME
+    }
+
+    response = requests.get(
+        url=NEWS_ENDPOINT,
+        params=news_params
+    )
+
+    response.raise_for_status()
+
+    articles = response.json()["articles"]
+
+    article_response = articles[:3]
 
 
-    formatted_article = ["Headline:{article['title']}. \n Brief: {article['description']}" for article in article_response]
-    print(formatted_article)
+    formatted_articles = [
+        f"Headline: {article['title']}\n"
+        f"Brief: {article['description']}"
+        for article in article_response
+    ]
+
+    print(formatted_articles)
 
 
-    client = Client(TWILIO_SID, TWILIO_TOKEN)
+    # ---------------- EMAIL ---------------- #
 
-    for article in formatted_article:
-      message = client.messages.create(
-          body=article,
-          from_="+17372508034",
-          to="+12892337666"
-      )
+    email_body = "\n\n".join(formatted_articles)
 
+    subject = (
+        f"{STOCK_NAME} Stock Alert - "
+        f"{percentage_difference:.2f}% move"
+    )
 
-
-
-
-
-
-
-
+    message = (
+        f"Subject: {subject}\n\n"
+        f"{STOCK_NAME} moved "
+        f"{percentage_difference:.2f}%.\n\n"
+        f"{email_body}"
+    )
 
 
+    with smtplib.SMTP(
+        "smtp.gmail.com",
+        port=587
+    ) as connection:
 
+        connection.starttls()
 
+        connection.login(
+            user=MY_EMAIL,
+            password=EMAIL_PASSWORD
+        )
+
+        connection.sendmail(
+            from_addr=MY_EMAIL,
+            to_addrs=MY_EMAIL,
+            msg=message
+        )
+
+    print("Email sent successfully!")
+
+else:
+    print("Stock did not move more than 1%. No email sent.")
