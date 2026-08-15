@@ -1,0 +1,32 @@
+name: Stock News Email
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    - cron: "0 9 * * *"
+
+jobs:
+  stock-news:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install requirements
+        run: pip install -r requirements.txt
+
+      - name: Run stock news program
+        env:
+          STOCK_API_KEY: ${{ secrets.STOCK_API_KEY }}
+          NEWS_API_KEY: ${{ secrets.NEWS_API_KEY }}
+          MY_EMAIL: ${{ secrets.MY_EMAIL }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+
+        run: python main.py
