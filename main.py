@@ -1,6 +1,8 @@
 import requests
 import smtplib
 import os
+from email.message import EmailMessage
+
 
 STOCK_NAME = "SMCI"
 COMPANY_NAME = "Super Micro Computer"
@@ -42,19 +44,26 @@ data = stock_data["Time Series (Daily)"]
 data_list = [value for (key, value) in data.items()]
 
 
+# Yesterday closing price
 yesterday_stock_price = float(
     data_list[0]["4. close"]
 )
 
+print("Yesterday closing price:", yesterday_stock_price)
+
+
+# Day before yesterday closing price
 day_before_yesterday = float(
     data_list[1]["4. close"]
 )
 
-print("Yesterday closing price:", yesterday_stock_price)
-print("Day before yesterday closing price:", day_before_yesterday)
+print(
+    "Day before yesterday closing price:",
+    day_before_yesterday
+)
 
 
-# ---------------- PERCENTAGE CHANGE ---------------- #
+# ---------------- PERCENTAGE DIFFERENCE ---------------- #
 
 difference = abs(
     yesterday_stock_price - day_before_yesterday
@@ -64,7 +73,10 @@ percentage_difference = (
     difference / day_before_yesterday
 ) * 100
 
-print("Percentage difference:", percentage_difference)
+print(
+    "Percentage difference:",
+    percentage_difference
+)
 
 
 # ---------------- NEWS ---------------- #
@@ -97,23 +109,37 @@ if percentage_difference > 1:
     ]
 
 
+    print(formatted_articles)
+
+
+    # ---------------- CREATE EMAIL ---------------- #
+
     email_body = "\n\n".join(formatted_articles)
-
-
-    # ---------------- EMAIL ---------------- #
 
     subject = (
         f"{STOCK_NAME} Stock Alert - "
         f"{percentage_difference:.2f}% move"
     )
 
-    message = (
-        f"Subject: {subject}\n\n"
+
+    message = EmailMessage()
+
+    message["Subject"] = subject
+    message["From"] = FROM_EMAIL
+    message["To"] = TO_EMAIL
+
+    message.set_content(
         f"{STOCK_NAME} moved "
-        f"{percentage_difference:.2f}% between the last two trading days.\n\n"
+        f"{percentage_difference:.2f}% "
+        f"between the last two trading days.\n\n"
+        f"Yesterday close: ${yesterday_stock_price:.2f}\n"
+        f"Previous close: ${day_before_yesterday:.2f}\n\n"
+        f"Latest news:\n\n"
         f"{email_body}"
     )
 
+
+    # ---------------- SEND EMAIL ---------------- #
 
     with smtplib.SMTP(
         "smtp.gmail.com",
@@ -127,14 +153,15 @@ if percentage_difference > 1:
             password=EMAIL_PASSWORD
         )
 
-        connection.sendmail(
-            from_addr=FROM_EMAIL,
-            to_addrs=TO_EMAIL,
-            msg=message
-        )
+        connection.send_message(message)
 
 
     print("Email sent successfully!")
 
+
 else:
-    print("Stock did not move more than 1%. No email sent.")
+
+    print(
+        "Stock did not move more than 1%. "
+        "No email sent."
+    )
